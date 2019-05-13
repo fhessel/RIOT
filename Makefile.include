@@ -245,7 +245,7 @@ export PREFIX ?= $(if $(TARGET_ARCH),$(TARGET_ARCH)-)
 INCLUDES += -I$(RIOTBASE)/core/include -I$(RIOTBASE)/drivers/include -I$(RIOTBASE)/sys/include
 
 # process provided features
-include $(RIOTBOARD)/$(BOARD)/Makefile.features
+include $(RIOTBASE)/Makefile.features
 
 # mandatory includes!
 include $(RIOTMAKE)/pseudomodules.inc.mk
@@ -570,7 +570,7 @@ reset:
 	$(RESET) $(RESET_FLAGS)
 
 .PHONY: test test/available
-TESTS ?= $(foreach file,$(wildcard $(APPDIR)/tests/*),\
+TESTS ?= $(foreach file,$(wildcard $(APPDIR)/tests/*[^~]),\
                         $(shell test -f $(file) -a -x $(file) && echo $(file)))
 test: $(TEST_DEPS)
 	$(Q) for t in $(TESTS); do \
