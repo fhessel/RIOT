@@ -97,6 +97,9 @@ include $(RIOTMAKE)/color.inc.mk
 # include concurrency helpers
 include $(RIOTMAKE)/info-nproc.inc.mk
 
+# List of boards variables
+include $(RIOTMAKE)/boards.inc.mk
+
 GLOBAL_GOALS += buildtest info-boards-supported info-boards-features-missing info-buildsizes info-buildsizes-diff
 ifneq (, $(filter $(GLOBAL_GOALS), $(MAKECMDGOALS)))
   BOARD=none
@@ -139,6 +142,14 @@ QQ=
 DEVELHELP ?= 0
 ifeq ($(DEVELHELP),1)
   CFLAGS += -DDEVELHELP
+endif
+
+# Override LOG_LEVEL if variable is set and if CFLAGS doesn't already contain
+# a LOG_LEVEL config
+ifdef LOG_LEVEL
+  ifneq (,$(filter -DLOG_LEVEL=%,$(CFLAGS)))
+    CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
+  endif
 endif
 
 # Fail on warnings. Can be overridden by `make WERROR=0`.
@@ -526,10 +537,12 @@ distclean:
 	-@for i in $(USEPKG) ; do "$(MAKE)" -C $(RIOTPKG)/$$i distclean ; done
 	-@rm -rf $(BINDIRBASE)
 
-define flash-recipe
+# Define flash-recipe with a default value
+define default-flash-recipe
   $(call check_cmd,$(FLASHER),Flash program)
   $(FLASHER) $(FFLAGS)
 endef
+flash-recipe ?= $(default-flash-recipe)
 
 # Do not add dependencies to "flash" directly, use FLASHDEPS, as this is shared
 # with flash-only too
@@ -620,17 +633,16 @@ ifneq (, $(filter all flash, $(if $(MAKECMDGOALS), $(MAKECMDGOALS), all)))
   endif
 
   # Test if all feature requirements were met by the selected board.
-  ifneq (, $(filter-out $(FEATURES_PROVIDED) $(FEATURES_OPTIONAL), $(FEATURES_REQUIRED)))
+  ifneq (,$(FEATURES_MISSING))
     $(shell $(COLOR_ECHO) "$(COLOR_RED)There are unsatisfied feature requirements:$(COLOR_RESET)"\
-                          "$(sort $(filter-out $(FEATURES_PROVIDED) $(FEATURES_OPTIONAL), $(FEATURES_REQUIRED)))" 1>&2)
+                          "$(FEATURES_MISSING)" 1>&2)
     EXPECT_ERRORS := 1
   endif
 
   # Test if any used feature conflict with another one.
-  CONFLICT := $(foreach var,$(FEATURES_CONFLICT),$(if $(filter $(words $(subst :, ,$(var))),$(words $(filter $(FEATURES_USED),$(subst :, ,$(var))))),$(subst :, ,$(var))))
-  ifneq (, $(strip $(CONFLICT)))
+  ifneq (,$(FEATURES_CONFLICTING))
     $(shell $(COLOR_ECHO) "$(COLOR_YELLOW)The following features may conflict:$(COLOR_RESET)"\
-                          "$(COLOR_GREEN)$(sort $(filter $(FEATURES_USED), $(CONFLICT)))$(COLOR_RESET)" 1>&2)
+                          "$(FEATURES_CONFLICTING)" 1>&2)
     ifneq (, $(FEATURES_CONFLICT_MSG))
         $(shell $(COLOR_ECHO) "$(COLOR_YELLOW)Rationale: $(COLOR_RESET)$(FEATURES_CONFLICT_MSG)" 1>&2)
     endif

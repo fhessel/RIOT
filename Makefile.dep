@@ -795,7 +795,7 @@ ifneq (,$(filter skald_%,$(USEMODULE)))
 endif
 
 ifneq (,$(filter skald,$(USEMODULE)))
-  FEATURES_REQUIRED += radio_ble
+  FEATURES_REQUIRED += radio_nrfble
   USEMODULE += xtimer
   USEMODULE += random
 endif
@@ -832,6 +832,20 @@ ifneq (,$(filter tlsf-malloc,$(USEMODULE)))
   USEPKG += tlsf
 endif
 
+ifneq (,$(filter usbus,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_usbdev
+  USEMODULE += core_thread_flags
+  USEMODULE += event
+endif
+
+ifneq (,$(filter usbus_cdc_ecm,$(USEMODULE)))
+  USEMODULE += iolist
+  USEMODULE += fmt
+  USEMODULE += usbus
+  USEMODULE += netdev_eth
+  USEMODULE += luid
+endif
+
 ifneq (,$(filter uuid,$(USEMODULE)))
   USEMODULE += hashes
   USEMODULE += random
@@ -865,17 +879,18 @@ FEATURES_OPTIONAL += periph_pm
 # include package dependencies
 -include $(USEPKG:%=$(RIOTPKG)/%/Makefile.dep)
 
-# remove required features from optional features
-FEATURES_OPTIONAL := $(filter-out $(FEATURES_REQUIRED),$(FEATURES_OPTIONAL))
-
-# add all optional but provided features to the list of used features
-FEATURES_USED := $(sort $(FEATURES_REQUIRED) $(filter $(FEATURES_OPTIONAL),$(FEATURES_PROVIDED)))
 
 # all periph features correspond to a periph submodule
+# FEATURES_USED is defined in Makefile.features
 USEMODULE += $(filter periph_%,$(FEATURES_USED))
 
 # select cpu_check_address pseudomodule if the corresponding feature is used
 USEMODULE += $(filter cpu_check_address, $(FEATURES_USED))
+
+# include periph_common if any periph_* driver is used
+ifneq (,$(filter periph_%, $(USEMODULE)))
+  USEMODULE += periph_common
+endif
 
 # recursively catch transitive dependencies
 USEMODULE := $(sort $(USEMODULE))
