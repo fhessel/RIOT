@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/gpio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -32,6 +33,7 @@
 typedef struct {
     gpio_cb_t cb;
     void *arg;
+    bool enabled;
 } native_gpio_cb_t;
 
 typedef struct {
@@ -220,7 +222,7 @@ static void _async_read_wrapper(int fd, void *arg) {
     struct gpioevent_data event;
     real_read(fd, &event, sizeof(event));
 
-    if (cb->cb) {
+    if (cb->cb && cb->enabled) {
         cb->cb(cb->arg);
     }
 
@@ -273,6 +275,7 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
 
     port->cbs[p]->cb  = cb;
     port->cbs[p]->arg = arg;
+    port->cbs[p]->enabled = true;
 
     native_async_read_setup();
     native_async_read_add_int_handler(req.fd, port->cbs[p], _async_read_wrapper);
@@ -280,14 +283,32 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
     return 0;
 }
 
+static void _set_irq_enabled(gpio_t pin, bool enabled)
+{
+    native_port_t *port;
+    const unsigned p = _pin(pin);
+
+    if (_port(pin) >= port_numof) {
+        return;
+    }
+
+    port = &ports[_port(pin)];
+
+    if (p >= port->num_pins) {
+        return;
+    }
+
+    port->cbs[p]->enabled = enabled;
+}
+
 void gpio_irq_enable(gpio_t pin)
 {
-    (void) pin;
+    _set_irq_enabled(pin, true);
 }
 
 void gpio_irq_disable(gpio_t pin)
 {
-    (void) pin;
+    _set_irq_enabled(pin, false);
 }
 
 #endif /* MODULE_PERIPH_GPIO_IRQ */
