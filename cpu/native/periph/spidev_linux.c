@@ -329,7 +329,7 @@ void spi_transfer_bytes(spi_t bus, spi_cs_t cs, bool cont,
     }
 
 #ifdef MODULE_PERIPH_GPIO
-    if (IS_GPIO_CS(cs)) {
+    if (IS_GPIO_CS(cs) && !cont) {
         gpio_set(cs);
     }
 #endif
