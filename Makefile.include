@@ -118,11 +118,14 @@ CLEAN = $(filter clean, $(MAKECMDGOALS))
 include $(RIOTMAKE)/utils/variables.mk
 include $(RIOTMAKE)/utils/strings.mk
 
-
 # UNAME is always needed so use simple variable expansion so only evaluated once
 UNAME := $(shell uname -m -s)
 OS = $(word 1, $(UNAME))
 OS_ARCH = $(word 2, $(UNAME))
+ifeq (native,$(BOARD))
+  TARGET_OS ?= $(OS)
+  TARGET_ARCH ?= $(OS_ARCH)
+endif
 
 # set python path, e.g. for tests
 PYTHONPATH := $(RIOTBASE)/dist/pythonlibs/:$(PYTHONPATH)
@@ -308,7 +311,9 @@ endif
 
 # default toolchain prefix, defaults to target triple followed by a dash, you
 # will most likely not need to touch this.
-export PREFIX ?= $(if $(TARGET_ARCH),$(TARGET_ARCH)-)
+ifneq ($(OS_ARCH),$(TARGET_ARCH))
+export PREFIX ?= $(TARGET_ARCH)-
+endif
 
 # set default PROGRAMMER value if flashing a board on IoT-LAB
 # This must be done before parsing the Makefile.include of the board and cannot

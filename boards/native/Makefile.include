@@ -28,18 +28,18 @@ ifeq (,$(filter -std=%, $(CFLAGS)))
   CFLAGS += -std=gnu11
 endif
 
-ifeq ($(OS_ARCH),x86_64)
+ifeq ($(TARGET_ARCH),x86_64)
   CFLAGS += -m32
 endif
 ifneq (,$(filter -DDEVELHELP,$(CFLAGS)))
   CFLAGS += -fstack-protector-all
 endif
-ifeq ($(OS),FreeBSD)
-  ifeq ($(OS_ARCH),amd64)
+ifeq ($(TARGET_OS),FreeBSD)
+  ifeq ($(TARGET_ARCH),amd64)
     CFLAGS += -m32 -DCOMPAT_32BIT -B/usr/lib32
   endif
 endif
-ifeq ($(OS),Darwin)
+ifeq ($(TARGET_OS),Darwin)
   CFLAGS += -Wno-deprecated-declarations
 endif
 
@@ -47,11 +47,11 @@ endif
 CXXUWFLAGS +=
 CXXEXFLAGS +=
 
-ifeq ($(OS_ARCH),x86_64)
+ifeq ($(TARGET_ARCH),x86_64)
   LINKFLAGS += -m32
 endif
-ifeq ($(OS),FreeBSD)
-  ifeq ($(OS_ARCH),amd64)
+ifeq ($(TARGET_OS),FreeBSD)
+  ifeq ($(TARGET_ARCH),amd64)
     LINKFLAGS += -m32 -DCOMPAT_32BIT -L/usr/lib32 -B/usr/lib32
   endif
   LINKFLAGS += -L $(BINDIR)
@@ -110,7 +110,7 @@ endif
 
 # backward compatability with glibc <= 2.17 for native
 ifeq ($(CPU),native)
-  ifeq ($(OS),Linux)
+  ifeq ($(TARGET_OS),Linux)
     ifeq ($(shell ldd --version |  awk '/^ldd/{if ($$NF < 2.17) {print "yes"} else {print "no"} }'),yes)
 	  LINKFLAGS += -lrt
     endif
@@ -120,7 +120,7 @@ endif
 # clumsy way to enable building native on osx:
 BUILDOSXNATIVE = 0
 ifeq ($(CPU),native)
-  ifeq ($(OS),Darwin)
+  ifeq ($(TARGET_OS),Darwin)
     BUILDOSXNATIVE = 1
   endif
 endif
